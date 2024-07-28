@@ -1,0 +1,202 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+import time
+import random
+import sys
+
+def delay_print(s, delay=0.05):
+    """Prints characters one at a time with a delay."""
+    for c in s:
+        sys.stdout.write(c)
+        sys.stdout.flush()
+        time.sleep(delay)
+
+class Pokemon:
+    type_effectiveness = {
+        'Fire': {'Fire': 0.5, 'Water': 0.5, 'Grass': 2},
+        'Water': {'Fire': 2, 'Water': 0.5, 'Grass': 0.5},
+        'Grass': {'Fire': 0.5, 'Water': 2, 'Grass': 0.5},
+    }
+
+    def __init__(self, name, types, moves, EVs, health='==================='):
+        self.name = name
+        self.types = types
+        self.moves = moves
+        self.attack = EVs['ATTACK']
+        self.defense = EVs['DEFENSE']
+        self.health = health
+        self.bars = 20
+
+    def calculate_effectiveness(self, opponent_type):
+        """Calculates effectiveness based on type advantages."""
+        return self.type_effectiveness.get(self.types, {}).get(opponent_type, 1)
+
+    def display_status(self):
+        """Prints current status of the Pokemon."""
+        print(f"{self.name}\t\tHLTH\t{self.health}")
+
+    def take_damage(self, damage):
+        """Updates the health and bars of the Pokemon after taking damage."""
+        self.bars -= damage
+        self.health = '=' * max(0, int(self.bars + 0.1 * self.defense))
+        if self.bars <= 0:
+            self.bars = 0
+            self.health = ''
+        self.display_status()
+
+    def calculate_move_damage(self, opponent):
+        """Calculates move damage based on effectiveness and attack power."""
+        base_damage = self.attack * random.uniform(0.8, 1.2)  # Base damage calculation with variability
+        effectiveness = self.calculate_effectiveness(opponent.types)
+        return max(int(base_damage * effectiveness), 1)  # Ensures at least 1 damage
+
+    def player_turn(self, opponent):
+        """Handles a single turn for the player."""
+        self.display_status()
+        print(f"Go {self.name}!")
+        for i, move in enumerate(self.moves):
+            print(f"{i + 1}. {move}")
+
+        # Player's turn
+        try:
+            index = int(input('Pick a move: ')) - 1
+            if not (0 <= index < len(self.moves)):
+                raise ValueError("Invalid move choice")
+        except ValueError as e:
+            print(e)
+            return
+
+        move_name = self.moves[index]
+        delay_print(f"\n{self.name} used {move_name}!")
+        time.sleep(1)
+
+        damage = self.calculate_move_damage(opponent)
+        delay_print(f"\nIt's {'super effective!' if damage > self.attack else 'not very effective...'}")
+
+        opponent.take_damage(damage)
+
+    def computer_turn(self, opponent):
+        """Handles a single turn for the computer."""
+        if not opponent.bars:
+            return
+
+        # Computer selects a random move
+        move_index = random.randint(0, len(self.moves) - 1)
+        move_name = self.moves[move_index]
+        delay_print(f"\n{self.name} used {move_name}!")
+        time.sleep(1)
+
+        damage = self.calculate_move_damage(opponent)
+        delay_print(f"\nIt's {'super effective!' if damage > self.attack else 'not very effective...'}")
+
+        opponent.take_damage(damage)
+
+    def show_info(self):
+        """Displays information about the Pokemon."""
+        print(f"\n{self.name}")
+        print(f"TYPE/ {self.types}")
+        print(f"ATTACK/ {self.attack}")
+        print(f"DEFENSE/ {self.defense}")
+        print(f"LVL/ {3 * (1 + (self.attack + self.defense) / 2)}")
+
+def choose_pokemon(pokemon_list):
+    """Prompts the user to choose a Pokemon."""
+    print("Choose a Pokemon:")
+    for i, pokemon in enumerate(pokemon_list):
+        print(f"{i + 1}. {pokemon.name}")
+
+    try:
+        choice = int(input('Pick a Pokemon (1-{}): '.format(len(pokemon_list)))) - 1
+        if not (0 <= choice < len(pokemon_list)):
+            raise ValueError("Invalid choice")
+    except ValueError as e:
+        print(e)
+        return None
+
+    return pokemon_list[choice]
+
+def get_player_name(prompt):
+    """Prompts for a player name."""
+    return input(prompt).strip()
+
+def main():
+    # Create Pokémon
+    all_pokemon = [
+        Pokemon('Charizard', 'Fire', ['Flamethrower', 'Fly', 'Blast Burn', 'Fire Punch'], {'ATTACK': 12, 'DEFENSE': 8}),
+        Pokemon('Blastoise', 'Water', ['Water Gun', 'Bubblebeam', 'Hydro Pump', 'Surf'], {'ATTACK': 10, 'DEFENSE': 10}),
+        Pokemon('Venusaur', 'Grass', ['Vine Whip', 'Razor Leaf', 'Earthquake', 'Frenzy Plant'], {'ATTACK': 8, 'DEFENSE': 12}),
+        Pokemon('Charmander', 'Fire', ['Ember', 'Scratch', 'Tackle', 'Fire Punch'], {'ATTACK': 4, 'DEFENSE': 2}),
+        Pokemon('Squirtle', 'Water', ['Bubblebeam', 'Tackle', 'Headbutt', 'Surf'], {'ATTACK': 3, 'DEFENSE': 3}),
+        Pokemon('Bulbasaur', 'Grass', ['Vine Whip', 'Razor Leaf', 'Tackle', 'Leech Seed'], {'ATTACK': 2, 'DEFENSE': 4}),
+        Pokemon('Charmeleon', 'Fire', ['Ember', 'Scratch', 'Flamethrower', 'Fire Punch'], {'ATTACK': 6, 'DEFENSE': 5}),
+        Pokemon('Wartortle', 'Water', ['Bubblebeam', 'Water Gun', 'Headbutt', 'Surf'], {'ATTACK': 5, 'DEFENSE': 5}),
+        Pokemon('Ivysaur', 'Grass', ['Vine Whip', 'Razor Leaf', 'Bullet Seed', 'Leech Seed'], {'ATTACK': 4, 'DEFENSE': 6}),
+    ]
+
+    print("Welcome to the Pokémon Battle Simulator!")
+    print("1. Battle against Dr. Oak (Computer)")
+    print("2. Battle against another player")
+
+    choice = input("Choose an option (1 or 2): ").strip()
+
+    if choice == '1':
+        player_name = get_player_name("Enter your name: ")
+        player_pokemon = choose_pokemon(all_pokemon)
+        if player_pokemon is None:
+            print("Invalid choice. Exiting.")
+            return
+
+        # Ensure the computer does not pick the same Pokémon
+        computer_pokemon_list = [p for p in all_pokemon if p != player_pokemon]
+        if not computer_pokemon_list:
+            print("No Pokémon available for Dr. Oak. Exiting.")
+            return
+
+        computer_pokemon = random.choice(computer_pokemon_list)
+        print(f"\nDr. Oak has chosen {computer_pokemon.name} for you to battle against!")
+        print(f"Battle between {player_name} and Dr. Oak!")
+
+        # Start the fight
+        while player_pokemon.bars > 0 and computer_pokemon.bars > 0:
+            player_pokemon.player_turn(computer_pokemon)
+            if computer_pokemon.bars <= 0:
+                delay_print(f"\n...{computer_pokemon.name} fainted.")
+                break
+
+            computer_pokemon.computer_turn(player_pokemon)
+            if player_pokemon.bars <= 0:
+                delay_print(f"\n...{player_pokemon.name} fainted.")
+                break
+
+        money = random.randint(0, 4999)
+        delay_print(f"\nDr. Oak paid you ${money}.\n")
+
+    elif choice == '2':
+        player1_name = get_player_name("Enter Player 1's name: ")
+        player2_name = get_player_name("Enter Player 2's name: ")
+
+        player1_pokemon = choose_pokemon(all_pokemon)
+        player2_pokemon = choose_pokemon(all_pokemon)
+
+        if player1_pokemon is None or player2_pokemon is None:
+            print("Invalid choice. Exiting.")
+            return
+
+        print(f"\nBattle between {player1_name} and {player2_name}!")
+        print(f"{player1_name} has chosen {player1_pokemon.name}")
+        print(f"{player2_name} has chosen {player2_pokemon.name}")
+
+        # Start the fight
+        while player1_pokemon.bars > 0 and player2_pokemon.bars > 0:
+            player1_pokemon.player_turn(player2_pokemon)
+            if player2_pokemon.bars <= 0:
+                delay_print(f"\n...{player2_pokemon.name} fainted.")
+                break
+
+            player2_pokemon.player_turn(player1_pokemon)
+            if player1_pokemon.bars <= 0:
+                delay_print(f"\n...{player1_pokemon.name} fainted.")
+                break
+
+if __name__ == '__main__':
+    main()
